@@ -1,0 +1,41 @@
+# Сборка: make -f Makefile.BSD
+CC ?= cc
+CFLAGS ?= -Wall -Wextra -O2
+TARGET = demo
+
+# Нативный синтаксис BSD Make для исполнения команд через шелл (оператор !=)
+# Проверяем pkgconf / pkg-config, либо подставляем стандартные пути FreeBSD/OpenBSD
+SDL_CFLAGS != pkgconf --cflags sdl2 SDL2_image 2>/dev/null || \
+              pkg-config --cflags sdl2 SDL2_image 2>/dev/null || \
+              echo "-I/usr/local/include/SDL2 -I/usr/local/include -D_REENTRANT"
+
+SDL_LIBS   != pkgconf --libs sdl2 SDL2_image 2>/dev/null || \
+              pkg-config --libs sdl2 SDL2_image 2>/dev/null || \
+              echo "-L/usr/local/lib -lSDL2 -lSDL2_image -lm"
+
+CFLAGS += $(SDL_CFLAGS)
+LDLIBS += $(SDL_LIBS)
+
+SRCS = main.c test_graphic.c backend.c
+OBJS = $(SRCS:.c=.o)
+DEPS = $(SRCS:.c=.d)
+
+.PHONY: all run clean
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) $(LDLIBS) -o $@
+
+# Преобразование .c в .o с генерацией зависимостей
+.c.o:
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+# BSD Make использует .sinclude (silent include) вместо gnu -include
+.sinclude "$(DEPS)"
+
+run: $(TARGET)
+	./$(TARGET)
+
+clean:
+	rm -f $(OBJS) $(DEPS) $(TARGET)

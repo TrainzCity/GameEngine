@@ -1,0 +1,48 @@
+# Сборка: mingw32-make -f Makefile.Windows
+CC ?= gcc
+CFLAGS ?= -Wall -Wextra -O2
+TARGET = demo.exe
+
+# Проверка наличия pkg-config в PATH (например, в MSYS2)
+HAS_PKG := $(shell where pkg-config 2>nul)
+
+ifneq ($(HAS_PKG),)
+    CFLAGS += $(shell pkg-config --cflags sdl2 SDL2_image)
+    LDLIBS += $(shell pkg-config --libs sdl2 SDL2_image)
+else
+    # Fallback при ручной установке SDL2 в MinGW
+    # В Windows порядок критичен: сначала mingw32 и SDL2main, затем SDL2
+    CFLAGS += -Dmain=SDL_main
+    LDLIBS += -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
+endif
+
+SRCS = main.c test_graphic.c backend.c
+OBJS = $(SRCS:.c=.o)
+DEPS = $(SRCS:.c=.d)
+
+# Кросс-оболочечная очистка (работает и в CMD, и в sh/bash)
+ifeq ($(SHELL),sh.exe)
+    RM = rm -f
+else
+    # Замена прямых слэшей на обратные для внутренней команды del в cmd.exe
+    CLEAN_FILES = $(subst /,\,$(OBJS) $(DEPS) $(TARGET))
+    RM = del /Q /F $(CLEAN_FILES) 2>nul || exit 0
+endif
+
+.PHONY: all run clean
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) $(LDLIBS) -o $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+-include $(DEPS)
+
+run: $(TARGET)
+	$(TARGET)
+
+clean:
+	$(RM)
