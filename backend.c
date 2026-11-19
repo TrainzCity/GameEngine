@@ -1,9 +1,12 @@
 #include "backend.h"
+#include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 static SDL_Window *g_window = NULL;
 static SDL_Renderer *g_renderer = NULL;
+static bool g_is_running = false;
 
 /**
  * @brief Инициализирует графическую подсистему, создавая окно и аппаратный рендерер.
@@ -44,12 +47,14 @@ void graphics_init(int height, int width) {
     }
 
     IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
+    g_is_running = true;
 }
 
 /**
  * @brief Завершает работу графической подсистемы и освобождает ресурсы окна и рендерера.
  */
 void graphics_close(void) {
+    g_is_running = false;
     IMG_Quit();
 
     if (g_renderer) {
@@ -66,16 +71,47 @@ void graphics_close(void) {
 }
 
 /**
+ * @brief Проверяет наличие тестового спрайта. При отсутствии генерирует и сохраняет его в BMP-файл.
+ *
+ * @param filename Путь к файлу со спрайтом.
+ */
+void ensure_sample_asset(const char *filename) {
+    if (!filename) {
+        return;
+    }
+
+    FILE *file = fopen(filename, "rb");
+    if (file) {
+        fclose(file);
+        return;
+    }
+
+    SDL_Surface *surface = SDL_CreateRGBSurface(0, 128, 128, 32, 0, 0, 0, 0);
+    if (surface) {
+        SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 50, 180, 100));
+        SDL_SaveBMP(surface, filename);
+        SDL_FreeSurface(surface);
+    }
+}
+
+/**
  * @brief Загружает растровое изображение по указанному файловому пути.
  *
- * Поддерживает форматы PNG, JPG и BMP при использовании библиотеки SDL2_image.
+ * Если файл по указанному пути отсутствует, автоматически создаёт тестовый ассет.
  *
  * @param path Путь к файлу изображения на диске.
- * @return Указатель на структуру Image в случае успеха, либо NULL при ошибке загрузки или нехватке памяти.
+ * @return Указатель на структуру Image в случае успеха, либо NULL при ошибке.
  */
-Image *image_load(const char *path) {
+image_t *image_load(const char *path) {
     if (!g_renderer || !path) {
         return NULL;
+    }
+
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+        ensure_sample_asset(path);
+    } else {
+        fclose(file);
     }
 
     SDL_Texture *texture = IMG_LoadTexture(g_renderer, path);
@@ -83,7 +119,7 @@ Image *image_load(const char *path) {
         return NULL;
     }
 
-    Image *image = (Image *)malloc(sizeof(Image));
+    image_t *image = (image_t *)malloc(sizeof(image_t));
     if (!image) {
         SDL_DestroyTexture(texture);
         return NULL;
@@ -102,7 +138,7 @@ Image *image_load(const char *path) {
  * @param x Экранная координата X верхнего левого угла отрисовки.
  * @param y Экранная координата Y верхнего левого угла отрисовки.
  */
-void image_draw(const Image *image, int x, int y) {
+void image_draw(const image_t *image, int x, int y) {
     if (!g_renderer || !image || !image->texture) {
         return;
     }
@@ -121,7 +157,7 @@ void image_draw(const Image *image, int x, int y) {
  *
  * @param image Указатель на освобождаемое изображение.
  */
-void image_free(Image *image) {
+void image_free(image_t *image) {
     if (!image) {
         return;
     }
@@ -144,10 +180,27 @@ void graphics_clear(void) {
 }
 
 /**
- * @brief Выводит сформированный кадровый буфер на экран (выполняет смену буферов).
+ * @brief Выводит сформированный кадровый буфер на экран и обрабатывает события окна.
  */
-void graphics_present(void) {
+void graphics_update(void) {
     if (g_renderer) {
         SDL_RenderPresent(g_renderer);
     }
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT ||
+           (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
+            g_is_running = false;
+        }
+    }
+}
+
+/**
+ * @brief Возвращает статус активности главного цикла приложения.
+ *
+ * @return true, если программа продолжает работу; false, если запрошен выход.
+ */
+bool is_quit(void) {
+    return g_is_running;
 }
