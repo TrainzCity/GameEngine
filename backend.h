@@ -36,6 +36,8 @@ void graphics_clear(void);
 
 void graphics_update(void);
 
+int key_pressed(char key);
+
 bool is_quit(void);
 
 #endif

@@ -3,10 +3,13 @@
 #include <SDL2/SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
-static SDL_Window *g_window = NULL;
-static SDL_Renderer *g_renderer = NULL;
-static bool g_is_running = false;
+SDL_Window *g_window = NULL;
+SDL_Renderer *g_renderer = NULL;
+bool g_is_running = false;
+
+int keyboard[256];
 
 /**
  * @brief Инициализирует графическую подсистему, создавая окно и аппаратный рендерер.
@@ -182,18 +185,27 @@ void graphics_clear(void) {
 /**
  * @brief Выводит сформированный кадровый буфер на экран и обрабатывает события окна.
  */
-void graphics_update(void) {
-    if (g_renderer) {
-        SDL_RenderPresent(g_renderer);
-    }
-
+void graphics_update(void)
+{    
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT ||
            (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
             g_is_running = false;
         }
+	if (event.type == SDL_KEYDOWN)
+	    keyboard[event.key.keysym.sym] = 1;
+	else if (event.type == SDL_KEYUP)
+	    keyboard[event.key.keysym.sym] = 0;
     }
+    if (g_renderer) {
+        SDL_RenderPresent(g_renderer);
+    }
+}
+
+int key_pressed(char key)
+{
+    return keyboard[(unsigned int)key];
 }
 
 /**

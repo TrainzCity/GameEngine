@@ -27,6 +27,15 @@ int main(int argc, char *argv[]) {
     while (is_quit()) {
         graphics_clear();
         image_draw(sprite, pos_x, pos_y);
+	if (key_pressed('a'))
+	    pos_x--;
+	if (key_pressed('d'))
+	    pos_x++;
+	if (key_pressed('w'))
+	    pos_y--;
+	if (key_pressed('s'))
+	    pos_y++;
+              
         graphics_update();
     }
 
