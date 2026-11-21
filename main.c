@@ -1,4 +1,5 @@
 #include "backend.h"
+#include "graphic.h"
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
@@ -20,29 +21,32 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int pos_x = (window_width - sprite->width) / 2;
-    int pos_y = (window_height - sprite->height) / 2;
+    /* Создание спрайта */
+    sprite_t *p1 = add_sprite(sprite, 100, 100, 1);
+    if (!p1) {
+        fprintf(stderr, "Не удалось создать спрайт\n");
+        image_free(sprite);
+        graphics_close();
+        return 1;
+    }
 
     /* 3. Главный цикл: отрисовка изображения и ожидание команд пользователя */
     while (is_quit()) {
         graphics_clear();
-        image_draw(sprite, pos_x, pos_y);
-	if (key_pressed('a'))
-	    pos_x--;
-	if (key_pressed('d'))
-	    pos_x++;
-	if (key_pressed('w'))
-	    pos_y--;
-	if (key_pressed('s'))
-	    pos_y++;
-              
+
+        if (key_pressed('a')) move_sprite(p1, -5, 0, 0);
+        if (key_pressed('d')) move_sprite(p1, 5, 0, 0);
+        if (key_pressed('w')) move_sprite(p1, 0, -5, 0);
+        if (key_pressed('s')) move_sprite(p1, 0, 5, 0);
+
+        print_sprites();
         graphics_update();
     }
 
     /* 4. Освободить ресурсы и закрыть окно */
+    clear_sprites();
     image_free(sprite);
     graphics_close();
 
     return 0;
 }
-
