@@ -54,7 +54,7 @@ CFLAGS += $(SDL_CFLAGS)
 LDLIBS += $(SDL_LIBS)
 
 # Исходники и генерация списков .o / .d
-SRCS = main.c backend.c
+SRCS = main.c backend.c graphic.c
 OBJS = $(SRCS:.c=.o)
 DEPS = $(SRCS:.c=.d)
 
