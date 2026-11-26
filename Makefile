@@ -49,10 +49,15 @@ OBJS = $(SRCS:.c=.o)
 DEPS = $(SRCS:.c=.d)
 
 # 3. Конфигурация модульных тестов
-TEST_MODULES = rect nav_graph
+TEST_MODULES = rect nav_graph collision
 
 TEST_SRCS_rect      = rect.c rect_unit_test.c
 TEST_SRCS_nav_graph = nav_graph.c nav_graph_test.c
+TEST_SRCS_collision = $(filter-out main.c rect.c,$(SRCS)) rect.c test_collision.c
+
+# Индивидуальные флаги для тестов, зависящих от SDL2 (через graphic.c / backend.c)
+TEST_CFLAGS_collision = $(filter-out -Dmain=SDL_main,$(SDL_CFLAGS)) -DSDL_MAIN_HANDLED
+TEST_LDLIBS_collision = $(filter-out -lSDL2main,$(SDL_LIBS))
 
 TEST_BINS = $(addprefix test_,$(addsuffix $(EXE_EXT),$(TEST_MODULES)))
 
@@ -88,7 +93,7 @@ $(TARGET): $(OBJS)
 # Генерация правил сборки и запуска для каждого тестового модуля
 define MAKE_TEST_RULE
 test_$(1)$(EXE_EXT): $$(TEST_SRCS_$(1))
-	$$(CC) $$(BASE_CFLAGS) $$^ -o $$@
+	$$(CC) $$(BASE_CFLAGS) $$(TEST_CFLAGS_$(1)) $$^ $$(TEST_LDLIBS_$(1)) -o $$@
 
 .PHONY: run-test-$(1)
 run-test-$(1): test_$(1)$(EXE_EXT)
